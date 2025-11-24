@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<title>PENTO-CASE — Case Battle</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+/* --- podstawowe style --- */
+body {background:#0d0d0d; color:white; font-family:'Segoe UI',Arial; margin:0; min-height:100vh; overflow-x:hidden;}
+header {position:fixed; top:0; left:0; right:0; height:70px; background:rgba(0,0,0,0.85); backdrop-filter:blur(12px);
+        display:flex; justify-content:space-between; align-items:center; padding:0 30px; z-index:1000; border-bottom:2px solid #333;}
+.header-left {display:flex; align-items:center; gap:20px;}
+#balance {font-size:22px; font-weight:700; color:#ff3399; text-shadow:0 0 10px #ff3399;}
+
+/* Awatar - POWIĘKSZONY 4x i PRZESUNIĘTY NIŻEJ */
+.avatar-container {
+  position: fixed;
+  top: 80px; /* Przesunięty niżej pod header */
+  left: 30px;
+  z-index: 999;
+}
+
+.avatar {
+  width: 200px; /* 4x większy (50px * 4 = 200px) */
+  height: 200px;
+  border-radius: 20px; /* Większy border-radius dla lepszego wyglądu */
+  border: 3px solid #ff3399;
+  cursor: pointer;
+  background: #1a1a1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(255, 51, 153, 0.5);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.avatar:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(255, 51, 153, 0.8);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-default {
+  color: #666;
+  font-size: 16px;
+  text-align: center;
+  padding: 10px;
+}
+
+/* Pasek levelu */
+.level-container {
+  position: absolute;
+  top: 75px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  z-index: 998;
+}
+
+.level-bar {
+  width: 300px;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  margin: 0 auto;
+  overflow: hidden;
+  position: relative;
+}
+
+.level-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #ff3399, #ff66bb);
+  transition: width 0.3s;
+}
+
+.level-text {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-shadow: 1px 1px 2px #000;
+}
+
+.container {
+  padding-top: 120px;
+  text-align: center;
+}
+
+.btn-big {
+  padding: 10px 22px;
+  margin: 10px;
+  background: #ff3399;
+  color: #000;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.18s;
+}
+
+.btn-big:hover {
+  background: #ff66bb;
+  transform: scale(1.02);
+}
+
+.case-card {
+  display: inline-block;
+  width: 200px;
+  margin: 14px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 12px;
+  border: 2px solid #444;
+  cursor: pointer;
+}
+
+.case-card img {
+  width: 150px;
+  height: 150px;
+  object-fit: contain;
+}
+
+.case-name {
+  font-size: 16px;
+  margin: 8px 0;
+  color: #ff3399;
+}
+
+.case-price {
+  font-size: 13px;
+  color: #0f0;
+}
+
+/* full-size roll (case opening) */
+.roll-container {
+  width: 88%;
+  max-width: 1100px;
+  height: 220px;
+  margin: 18px auto;
+  border: 4px solid #ff3399;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+  box-shadow: 0 0 40px rgba(255, 51, 153, 0.5);
+  display: none;
+}
+
+.roll {
+  display: flex;
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+}
+
+.item {
+  width: 220px;
+  height: 220px;
+  flex-shrink: 0;
+  background: #222;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 2px solid #000;
+}
+
+.item img {
+  width: 170px;
+  height: 170px;
+  object-fit: contain;
+}
+
+.pointer {
+  width: 14px;
+  height: 170px;
+  background: linear-gradient(transparent, #ff0066 20%, #ff66aa 50%, #ff0066 80%, transparent);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 12px;
+  box-shadow: 0 0 50px #ff3399;
+  z-index: 20;
+  display: none;
+}
+
+/* battle small rolls inside player box */
+.battle-area {
+  padding: 18px;
+  text-align: center;
+}
+
+.player-slot {
+  display: inline-block;
+  width: 200px;
+  margin: 8px;
+  background: #111;
+  border-radius: 10px;
+  padding: 8px;
+  border: 2px solid #333;
+  vertical-align: top;
+}
+
+.player-slot.you {
+  border-color: #00ff66;
+}
+
+.player-slot.winner {
+  border: 4px solid gold !important;
+  box-shadow: 0 0 60px gold !important;
+}
+
+.player-slot .name {
+  color: #ff3399;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.player-slot .box {
+  width: 160px;
+  height: 160px;
+  margin: 0 auto;
+  background: #000;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #222;
+  overflow: hidden;
+  position: relative;
+}
+
+.player-slot.leading {
+  box-shadow: 0 0 18px #3aff66;
+  border-color: #3aff66;
+}
+
+.small-roll {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  display: flex;
+  transition: left 5.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+.small-item {
+  width: 160px;
+  height: 160px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #111;
+  border-right: 2px solid #000;
+}
+
+.player-slot .info {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ccc;
+}
+
+.player-slot .val {
+  color: #0f0;
+  font-weight: 700;
+}
+
+.player-slot .count {
+  color: #ffd700;
+  font-weight: 700;
+}
+
+/* inventory */
+#inventory {
+  padding: 30px;
+}
+
+.inv-item {
+  display: inline-block;
+  width: 190px;
+  margin: 12px;
+  background: #222;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.inv-item img {
+  width: 140px;
+  height: 100px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.small {
+  font-size: 13px;
+  color: #ccc;
+}
+
+/* shop */
+.shop-item {
+  display: inline-block;
+  width: 180px;
+  margin: 14px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 12px;
+  border: 2px solid #444;
+  vertical-align: top;
+}
+
+.shop-item img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.shop-item-name {
+  font-size: 14px;
+  margin: 8px 0;
+  color: #ff3399;
+  font-weight: 700;
+}
+
+.shop-item-price {
+  font-size: 13px;
+  color: #0f0;
+  margin-bottom: 8px;
+}
+
+/* responsive */
+@media (max-width: 900px) {
+  .player-slot {
+    width: 46%;
+  }
+  .inv-item {
+    width: 46%;
+  }
+  .shop-item {
+    width: 46%;
+  }
+  .avatar-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin: 20px auto;
+  }
+  .avatar {
+    width: 150px;
+    height: 150px;
+  }
+}
+
+@media (max-width: 520px) {
+  .player-slot {
+    width: 100%;
+  }
+  .inv-item {
+    width: 100%;
+  }
+  .case-card {
+    width: 140px;
+  }
+  .shop-item {
+    width: 100%;
+  }
+  .level-bar {
+    width: 250px;
+  }
+  .avatar-container {
+    position: relative;
+    top: auto;
+    left: auto;
+    margin: 20px auto;
+  }
+  .avatar {
+    width: 120px;
+    height: 120px;
+  }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <!-- Awatar został przeniesiony poza header -->
+  </div>
+  <div id="balance">10 000 zł</div>
+</header>
+
+<!-- AWATAR - TERAZ JEST TU, POD HEADEREM PO LEWEJ -->
+<div class="avatar-container">
+  <div class="avatar" id="avatar" onclick="changeAvatar()">
+    <div class="avatar-default" id="avatarDefault">AWATAR</div>
+  </div>
+</div>
+
+<div class="level-container">
+  <div class="level-bar">
+    <div class="level-progress" id="levelProgress"></div>
+    <div class="level-text" id="levelText">Level 1 | 0/100 XP</div>
+  </div>
+</div>
+
+<div class="container" id="mainMenu">
+  <h1 style="font-size:36px;color:#ff3399;margin-bottom:8px">PENTO-CASE</h1>
+  <div style="margin-bottom:16px">
+    <button class="btn-big" onclick="showCases()">OTWÓRZ SKRZYNKĘ</button>
+    <button class="btn-big" onclick="showBattle()">CASE BATTLE</button>
+    <button class="btn-big" onclick="showShop()">SKLEP</button>
+  </div>
+  <div class="small">Tryb: Case Battle - graj przeciw botom lokalnie.</div>
+</div>
+
+<!-- CASES SCREEN -->
+<div id="casesScreen" style="display:none;text-align:center;padding-top:80px;">
+  <button class="btn-big" onclick="backToMenu()">WRÓĆ</button>
+  <h2 style="color:#ff3399;margin-top:20px">WYBIERZ SKRZYNKĘ</h2>
+  <div style="margin-top:12px">
+    <div class="case-card" onclick="openCase(1)"><img src="https://i.postimg.cc/8zjR0TkZ/sdfsdfdfssdfsdf-Photoroom.png"><div class="case-name">PENTO-CASE</div><div class="case-price">DARMOWA</div></div>
+    <div class="case-card" onclick="openCase(2)"><img src="https://i.postimg.cc/tR3XQ6vB/Zrzut-ekranu-2025-11-19-214235-removebg-preview.png"><div class="case-name">DYCHA CASE</div><div class="case-price">1000 zł</div></div>
+    <div class="case-card" onclick="openCase(3)"><img src="https://i.postimg.cc/G2Ty8xTk/dddddddd-removebg-preview.png"><div class="case-name">LEGEND CASE</div><div class="case-price">5000 zł</div></div>
+  </div>
+
+  <img id="caseBox" style="width:220px;cursor:pointer;margin-top:20px" onclick="startRoll()" alt="case image">
+  <div class="roll-container" id="rollContainer"><div class="roll" id="roll"></div></div>
+  <div class="pointer" id="pointer"></div>
+  <div id="result" style="margin-top:12px"></div>
+</div>
+
+<!-- BATTLE / CASE BATTLE SCREEN -->
+<div id="battleScreen" style="display:none;padding-top:80px;text-align:center;">
+  <button class="btn-big" onclick="backToMenu()">WRÓĆ</button>
+  <h2 style="color:#ff3399;margin-top:8px">CASE BATTLE — Lokalnie vs Boty</h2>
+
+  <div style="margin:10px">
+    <label class="small">Wybierz liczbę botów:</label><br>
+    <button class="btn-big" onclick="battleSetBots(1)">1 BOT</button>
+    <button class="btn-big" onclick="battleSetBots(2)">2 BOTY</button>
+    <button class="btn-big" onclick="battleSetBots(3)">3 BOTY</button>
+  </div>
+
+  <div style="margin-top:8px">
+    <label class="small">Wybierz skrzynki (możesz dodać kilka):</label><br>
+    <div class="case-card" style="display:inline-block" onclick="battleAddCase(1)"><img src="https://i.postimg.cc/8zjR0TkZ/sdfsdfdfssdfsdf-Photoroom.png"><div class="case-name">PENTO-CASE</div></div>
+    <div class="case-card" style="display:inline-block" onclick="battleAddCase(2)"><img src="https://i.postimg.cc/tR3XQ6vB/Zrzut-ekranu-2025-11-19-214235-removebg-preview.png"><div class="case-name">DYCHA CASE</div></div>
+    <div class="case-card" style="display:inline-block" onclick="battleAddCase(3)"><img src="https://i.postimg.cc/G2Ty8xTk/dddddddd-removebg-preview.png"><div class="case-name">LEGEND CASE</div></div>
+  </div>
+
+  <div id="battleSelected" style="margin:12px;padding:10px;background:#111;border-radius:8px;border:1px solid #333">Brak skrzynek</div>
+
+  <div style="margin-top:12px">
+    <button class="btn-big" onclick="startBattle()">START BATTLE</button>
+    <small class="small">Wyniki generowane lokalnie. Animacje wszystkich graczy odtwarzane jednocześnie.</small>
+  </div>
+
+  <div id="battleArea" class="battle-area" style="margin-top:18px"></div>
+  <div id="battleResult" style="margin-top:16px"></div>
+</div>
+
+<!-- SHOP SCREEN -->
+<div id="shopScreen" style="display:none;padding-top:80px;text-align:center;">
+  <button class="btn-big" onclick="backToMenu()">WRÓĆ</button>
+  <h2 style="color:#ff3399;margin-top:20px">SKLEP</h2>
+  <div style="margin-top:12px" id="shopItems">
+    <!-- Shop items will be generated here -->
+  </div>
+</div>
+
+<!-- EKWIPUNEK -->
+<div id="inventory" style="padding:18px;text-align:center;">
+  <h3 style="color:#ff3399">Twój Ekwipunek</h3>
+  <button class="btn-big" onclick="sellAllItems()" style="background:#ff6600;margin-bottom:20px;">SPRZEDAJ WSZYSTKIE PRZEDMIOTY</button>
+  <div id="inventoryItems"></div>
+</div>
+
+<script>
+/* ---------------------- STAN APLIKACJI ---------------------- */
+let balance = parseInt(localStorage.getItem("pentoBalance")) || 10000;
+let inventory = JSON.parse(localStorage.getItem("pentoInventory")) || [];
+let playerLevel = parseInt(localStorage.getItem("pentoLevel")) || 1;
+let playerXP = parseInt(localStorage.getItem("pentoXP")) || 0;
+let currentAvatar = localStorage.getItem("pentoAvatar") || null;
+let claimedLevels = JSON.parse(localStorage.getItem("pentoClaimedLevels")) || [];
+
+const balanceEl = document.getElementById('balance');
+function updateBalance(){ balanceEl.textContent = balance.toLocaleString() + ' zł'; localStorage.setItem('pentoBalance', balance); }
+
+/* ---------------------- SYSTEM LEVELI ---------------------- */
+function calculateRequiredXP(level) {
+  // Im wyższy level, tym więcej XP potrzeba (wykładniczo)
+  return Math.floor(100 * Math.pow(1.15, level - 1));
+}
+
+function addXP(amount) {
+  const requiredXP = calculateRequiredXP(playerLevel);
+  playerXP += amount;
+  
+  // Sprawdzanie awansu levelu
+  while (playerXP >= requiredXP && playerLevel < 100) {
+    playerXP -= requiredXP;
+    playerLevel++;
+    
+    // Sprawdź czy level jest podzielny przez 5 i czy nagroda nie została odebrana
+    if (playerLevel % 5 === 0 && !claimedLevels.includes(playerLevel)) {
+      const reward = playerLevel * 500; // Nagroda rośnie z levelem
+      setTimeout(() => {
+        if (confirm(`Gratulacje! Osiągnąłeś level ${playerLevel}! Odbierz nagrodę: ${reward.toLocaleString()} zł!`)) {
+          balance += reward;
+          claimedLevels.push(playerLevel);
+          localStorage.setItem('pentoClaimedLevels', JSON.stringify(claimedLevels));
+          updateBalance();
+          updateLevelDisplay();
+          alert(`Odebrano ${reward.toLocaleString()} zł!`);
+        }
+      }, 500);
+    }
+  }
+  
+  localStorage.setItem('pentoLevel', playerLevel);
+  localStorage.setItem('pentoXP', playerXP);
+  updateLevelDisplay();
+}
+
+function updateLevelDisplay() {
+  const requiredXP = calculateRequiredXP(playerLevel);
+  const progress = (playerXP / requiredXP) * 100;
+  
+  document.getElementById('levelProgress').style.width = `${progress}%`;
+  document.getElementById('levelText').textContent = `Level ${playerLevel} | ${playerXP}/${requiredXP} XP`;
+  
+  // Dodaj gwiazdkę przy levelach z nieodebraną nagrodą
+  if (playerLevel % 5 === 0 && !claimedLevels.includes(playerLevel)) {
+    document.getElementById('levelText').textContent += ' ★';
+  }
+}
+
+// XP za różne akcje
+const xpRewards = {
+  caseOpen: (caseCost) => Math.max(10, Math.floor(caseCost / 50)), // Minimum 10 XP, więcej za droższe skrzynki
+  battleWin: 50,
+  battleParticipate: 20,
+  shopPurchase: (itemPrice) => Math.floor(itemPrice / 100)
+};
+
+/* ---------------------- AWATAR ---------------------- */
+function updateAvatar() {
+  const avatarElement = document.getElementById('avatar');
+  const avatarDefault = document.getElementById('avatarDefault');
+  
+  if (currentAvatar) {
+    avatarDefault.style.display = 'none';
+    avatarElement.innerHTML = `<img src="${currentAvatar}" alt="Awatar">`;
+  } else {
+    avatarDefault.style.display = 'flex';
+    avatarElement.innerHTML = '<div class="avatar-default">AWATAR</div>';
+  }
+}
+
+function changeAvatar() {
+  // Znajdź wszystkie skiny z Legend Case w ekwipunku
+  const legendCaseSkins = inventory.filter(item => 
+    cases[3].skins.some(skin => skin.name === item.name)
+  );
+  
+  if (legendCaseSkins.length === 0) {
+    alert('Nie masz żadnych skinów z Legend Case w ekwipunku!');
+    return;
+  }
+  
+  // Stwórz listę dostępnych skinów do wyboru
+  let skinList = 'Wybierz skin na awatar:\n\n';
+  legendCaseSkins.forEach((skin, index) => {
+    skinList += `${index + 1}. ${skin.name}\n`;
+  });
+  
+  const choice = prompt(skinList + '\nWpisz numer skinu:');
+  const skinIndex = parseInt(choice) - 1;
+  
+  if (skinIndex >= 0 && skinIndex < legendCaseSkins.length) {
+    currentAvatar = legendCaseSkins[skinIndex].img;
+    localStorage.setItem('pentoAvatar', currentAvatar);
+    updateAvatar();
+    alert(`Ustawiono awatar: ${legendCaseSkins[skinIndex].name}`);
+  } else if (choice !== null) {
+    alert('Nieprawidłowy wybór!');
+  }
+}
+
+/* ---------------------- SKLEP ---------------------- */
+const shopItems = [
+  { id: 1, name: "Wild Lotus", price: 100000, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiFO0POlV61-LPGdCliWzeFkse1WQyC0nQlpsDuGyt-pdnyRPA4hDcYkR-QPuhi-wdPuYbyx5AaMidkQnC_-2ilIuzErvbi4ijV5Mw/360fx360f" },
+  { id: 2, name: "Pandora Gloves", price: 90000, img: "https://imageproxy.waxpeer.com/insecure/rs:fit:300:170:0/g:nowe/f:webp/plain/https://steamcommunity-a.akamaihd.net/economy/image/class/730/2077639777" },
+  { id: 3, name: "Hedge Maze", price: 80000, img: "https://imageproxy.waxpeer.com/insecure/rs:fit:552:385:0/g:nowe/f:webp/plain/https://steamcommunity-a.akamaihd.net/economy/image/class/730/2079266837" },
+  { id: 4, name: "Butterfly Ruby", price: 70000, img: "https://imageproxy.waxpeer.com/insecure/rs:fit:552:385:0/g:nowe/f:webp/plain/https://steamcommunity-a.akamaihd.net/economy/image/class/730/2221323629" },
+  { id: 5, name: "M9 Emerald", price: 60000, img: "https://skinbaron.de/steamdatadefault/apps/730/icons/econ/default_generated/weapon_knife_m9_bayonet_am_emerald_marbleized_light_large.5da41deaab71a392d147b3aafb5128bfbe5aefd1.png" },
+  { id: 6, name: "Howl", price: 50000, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL8ypexwiFO0P_6afVSKP-EAm6extF6ueZhW2exwkl2tmTXwt39eCiUPQR2DMN4TOVetUK8xoLgM-K341eM2otDnC6okGoXufBz_TAB/360fx360f" },
+  { id: 7, name: "Hydrophonica", price: 40000, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiNW0PCvZaZiL8-ZG2mXzetJvOhuRz39lk0m4Dncztz7Jy2fagIoC5t5QeNbskW6xNLgZu-24AXZgt4Xyi_4izQJsHjOr8RS6A/360fx360f" },
+  { id: 8, name: "Golden Arabeska", price: 30000, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwlcK3wiVI0POlPPNSJ_-fCliR0-90tfJ4WiyMmBgjuiiI1Nn4cXjEbwMlDsR4RrVfsRK4wdPgPrjh4wKNg49Cyn__2iNI6ihi5O8cEf1yNgAZ7yU/330x192?allow_animated=1" },
+  { id: 9, name: "Hydra", price: 20000, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf-jFk7uW-V6x0JOKSMWuZxuZi_uA7Syu2w0Ry4mqGzYypeH3DaAEnCpt0FuAK4RjrkoDgMb7mtFfcit5bjXKpX4RFZcA/360fx360f" },
+  { id: 10, name: "Butterfly Lore", price: 10000, img: "https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Z-ua6bbZrLOmsDXKvw_tipOR7SSWqqhEooTi6l4r9KD7KcAYnC5V5EbEItxDqwdDhYurntQOKgoJGmHmoiXlN5yw9tb4CV_cn8qDJz1aWe-z5ekc/360fx360f" }
+];
+
+function renderShop() {
+  const shopContainer = document.getElementById('shopItems');
+  shopContainer.innerHTML = '';
+  shopItems.forEach(item => {
+    const itemEl = document.createElement('div');
+    itemEl.className = 'shop-item';
+    itemEl.innerHTML = `
+      <img src="${item.img}" alt="${item.name}">
+      <div class="shop-item-name">${item.name}</div>
+      <div class="shop-item-price">${item.price.toLocaleString()} zł</div>
+      <button class="btn-big" onclick="buyItem(${item.id})" style="padding:8px 16px;font-size:14px;" ${balance < item.price ? 'disabled style="background:#666;"' : ''}>KUP</button>
+    `;
+    shopContainer.appendChild(itemEl);
+  });
+}
+
+function buyItem(itemId) {
+  const item = shopItems.find(i => i.id === itemId);
+  if (!item) return;
+  
+  if (balance < item.price) {
+    alert('Za mało pieniędzy!');
+    return;
+  }
+  
+  balance -= item.price;
+  inventory.push({
+    name: item.name,
+    img: item.img,
+    price: Math.round(item.price * 0.8) // Wartość odsprzedaży 80% ceny zakupu
+  });
+  
+  // Dodaj XP za zakup
+  addXP(xpRewards.shopPurchase(item.price));
+  
+  localStorage.setItem('pentoInventory', JSON.stringify(inventory));
+  updateBalance();
+  renderInventory();
+  renderShop();
+  alert(`Kupiłeś: ${item.name} za ${item.price.toLocaleString()} zł!`);
+}
+
+/* ---------------------- EKWIPUNEK ---------------------- */
+function renderInventory(){
+  const el = document.getElementById('inventoryItems'); 
+  el.innerHTML = inventory.length===0 ? '<p style="color:#666">Ekwipunek pusty</p>' : '';
+  inventory.forEach((it,i)=>{
+    const d=document.createElement('div'); 
+    d.className='inv-item'; 
+    d.style.cssText='display:inline-block;width:190px;margin:12px;padding:10px;background:#111;border-radius:10px;border:1px solid #333;';
+    d.innerHTML = `
+      <img src="${it.img}">
+      <div style="font-weight:700;margin-top:8px">${it.name}</div>
+      <div style="color:#0f0">${it.price?.toLocaleString()||0} zł</div>
+      <button style="margin-top:8px;padding:8px;border-radius:8px;background:#ff3399;border:none;cursor:pointer" onclick="sellItem(${i})">SPRZEDAJ</button>
+    `;
+    el.appendChild(d);
+  });
+}
+
+function sellItem(index) {
+  if (index >= 0 && index < inventory.length) {
+    const item = inventory[index];
+    balance += item.price || 0;
+    inventory.splice(index, 1);
+    localStorage.setItem('pentoInventory', JSON.stringify(inventory));
+    updateBalance();
+    renderInventory();
+    
+    // Jeśli sprzedany item był ustawiony jako awatar, zresetuj awatar
+    if (currentAvatar === item.img) {
+      currentAvatar = null;
+      localStorage.setItem('pentoAvatar', null);
+      updateAvatar();
+    }
+  }
+}
+
+function sellAllItems() {
+  if (inventory.length === 0) {
+    alert('Ekwipunek jest pusty!');
+    return;
+  }
+  
+  const totalValue = inventory.reduce((sum, item) => sum + (item.price || 0), 0);
+  if (confirm(`Czy na pewno chcesz sprzedać wszystkie przedmioty za ${totalValue.toLocaleString()} zł?`)) {
+    balance += totalValue;
+    inventory = [];
+    localStorage.setItem('pentoInventory', JSON.stringify(inventory));
+    updateBalance();
+    renderInventory();
+    
+    // Zresetuj awatar po sprzedaży wszystkich przedmiotów
+    currentAvatar = null;
+    localStorage.setItem('pentoAvatar', null);
+    updateAvatar();
+    
+    alert(`Sprzedano wszystkie przedmioty za ${totalValue.toLocaleString()} zł!`);
+  }
+}
+
+window.sellItem = sellItem;
+
+/* ---------------------- SKRZYNKI I SKINY ---------------------- */
+const cases = {
+  1: { name:'PENTO-CASE', cost:0, img:'https://i.postimg.cc/8zjR0TkZ/sdfsdfdfssdfsdf-Photoroom.png', skins:[
+      {name:'Fade Skin', chance:3, basePrice:8500, img:'https://app.skin.land/market_images/172093_s.png'},
+      {name:'Butterfly Knife Gamma Doppler', chance:1, basePrice:45000, img:'https://steamcommunity-a.akamaihd.net/economy/image/-9a81dlWLwJ2UUGcVs_nsVtzdOEdtWwKGZZLQHTxDZ7I56KU0Zwwo4NUX4oFJZEHLbXH5ApeO4YmlhxYQknCRvCo04DEVlxkKgpovbSsLQJf0ebcZThQ6tCvq4GGqPL5NqnQmm9u5cRjiOXE_JbwjGu4ohQ0J3f6JtPEegNrMwvUrwe6kLjsjcPtuJXJmnFguCMn5i7enkDkiRFIabM7m7XAHtBCTvK7'},
+      {name:'M4A4 Howl (FN)', chance:2, basePrice:32000, img:'https://app.skin.land/blogfiles/6UzHfAHTtqrJYDxxTK2nTjhrx4r7R3EuTVlVv3Yt.png'},
+      {name:'Blaze Deagle', chance:5, basePrice:4800, img:'https://app.skin.land/blogfiles/h7WgeAP2MwvAPCtGyqwt4THV0iInH7YhasGFMZc0.png'},
+      {name:'AK-47 (WW)', chance:5, basePrice:4200, img:'https://app.skin.land/market_images/11884_s.png'},
+      {name:'Rarest CS2 Skins', chance:20, basePrice:800, img:'https://app.skin.land/market_images/9433_b.png'},
+      {name:'Desert Eagle Printstream', chance:20, basePrice:1200, img:'https://app.skin.land/market_images/147012_b.png'},
+      {name:'Pamiątka Kazirodcza', chance:22, basePrice:600, img:'https://app.skin.land/market_images/171775_s.png'},
+      {name:'Random Market Skin', chance:22, basePrice:450, img:'https://app.skin.land/market_images/167290_b.png'}
+  ]},
+  2: { name:'DYCHA CASE', cost:1000, img:'https://i.postimg.cc/tR3XQ6vB/Zrzut-ekranu-2025-11-19-214235-removebg-preview.png', skins:[
+      {name:'Dragon Lore', chance:1, basePrice:120000, img:'https://www.pngkey.com/png/full/439-4396345_added-a-new-cover-image-awp-dragon-lore.png'},
+      {name:'Karambit Doppler', chance:3, basePrice:48000, img:'https://cache.steamanalyst.com/ad61b4d905c39f697215f90e8dd0119726d628dc.png'},
+      {name:'AWP Gungnir', chance:4, basePrice:38000, img:'https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLwiYbf-jFk7uW-V6N4LvedB3WvzedxuPUnHnjnzUl0sWrdztitI3rDZgJzAsZ1QOFY4UPqldDgMO_l41HXit9AmTK-0H227dAsvQ/360fx360f'},
+      {name:'M9 Bayonet Crimson Web', chance:5, basePrice:32000, img:'https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Wts2sab1iLvWHMW-J_vlzsvJWQiy3nAgq_TzXw4yhdn_BOlMiDZt3TeULtxDqx4XhYu2x4AyI3toQzSmr2iJK7iZ1o7FVPvLt_5s/360fx360f'},
+      {name:'Gloves Vice', chance:10, basePrice:4600, img:'https://app.skin.land/market_images/39408_s.png'},
+      {name:'AK-47 Fire Serpent', chance:10, basePrice:4000, img:'https://ss.bleikstore.com/42659925063%2F2.webp'},
+      {name:'USP-S Kill Confirmed', chance:10, basePrice:3260, img:'https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyLkjYbf7itX6vytbbZSI-WsG3SA_uV_vO1WTCa9kxQ1vjiBpYL8JSLSMxghCMEjEeNe5hHpw9zhYuOz5VfcitpBmyqt3X9O6itrsesFUfYmrKzTkUifZqPQtnZK/360fx360f'},
+      {name:'Classic Knife Fade', chance:20, basePrice:1600, img:'https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIGz3UqlXOLrxM-vMGmW8VNxu5Dx60noTyL6kJ_m-B1Y_OGRaaVSJvGXC1icyOl-pK9tHn-yxhkltmTVnon4IHqUbgInWcN1ELIK5hS9xIbkZumx4wONjd9H02yg2Yau6XG6/360fx360f'},
+      {name:'StatTrak Music Kit', chance:20, basePrice:1060, img:'https://community.fastly.steamstatic.com/economy/image/i0CoZ81Ui0m-9KwlBY1L_18myuGuq1wfhWSaZgMttyVfPaERSR0Wqmu7LAocGIijyEKzb_3d19nuN3mZ6kVKpNa6vgjlRByknJOw-CEK7KP_bPZrefPGVmSTk7py4bY8Tivlx0Vw4z_SzsHpLyyu3lGzoA/330x192'},
+      {name:'Random High-Tier Skin', chance:17, basePrice:600, img:'https://images.steamusercontent.com/ugc/2019350432622307608/8C495B331C0D24D0080332AD40DA55DBE2427E8B/'}
+  ]},
+  3: { name:'LEGEND CASE', cost:5000, img:'https://i.postimg.cc/G2Ty8xTk/dddddddd-removebg-preview.png', skins:[
+      {name:'Donk', chance:1, basePrice:100000, img:'https://img-cdn.hltv.org/playerbodyshot/sEwjjWjn36V9aqH6i07aFx.png?ixlib=java-2.1.0&w=400&s=14a4ef10ad0fcd029d9b8872437a697e'},
+      {name:'Simple', chance:2, basePrice:50000, img:'https://img-cdn.hltv.org/playerbodyshot/O2mYq7Td1la8B8xGC-dYr8.png?ixlib=java-2.1.0&w=400&s=a1921e5df7d31e47aadc050ab4c0ff55'},
+      {name:'Ropz', chance:3, basePrice:20000, img:'https://img-cdn.hltv.org/playerbodyshot/lC8JyY0y43QcoKDC41ZeEX.png?ixlib=java-2.1.0&w=400&s=1d505a7641e5358937808e5dbf6ca54c'},
+      {name:'Zywoo', chance:4, basePrice:10000, img:'https://img-cdn.hltv.org/playerbodyshot/bxEhMYAhUwDXAO1gbuOwE7.png?ixlib=java-2.1.0&w=400&s=95005e4351561cb1427ae057fb2cbb25'},
+      {name:'Xantares', chance:5, basePrice:6000, img:'https://prosettings.net/cdn-cgi/image/dpr=1%2Cf=auto%2Cfit=cover%2Ch=400%2Cq=85%2Cw=400/wp-content/uploads/xantares.webp'},
+      {name:'Molodoy', chance:10, basePrice:5500, img:'https://img-cdn.hltv.org/playerbodyshot/oPoWLYFq87cIs2cYDo8id7.png?ixlib=java-2.1.0&w=400&s=26d135bacbf9f98ff775421c3ca2bf4c'},
+      {name:'Kyousuke', chance:15, basePrice:5000, img:'https://img-cdn.hltv.org/playerbodyshot/_s6UUQ4E92xw1uSWWCafsK.png?ixlib=java-2.1.0&w=400&s=d94a122aa9a8ec89f0727656b69e2415'},
+      {name:'Snax', chance:20, basePrice:4000, img:'https://img-cdn.hltv.org/playerbodyshot/PCtBkxFzx6KVhnaGxgVoQa.png?ixlib=java-2.1.0&w=400&s=f0b074cfa6e7dfb5cbf439b5fdd8e08b'},
+      {name:'SzeliS', chance:25, basePrice:2137, img:'https://i.ytimg.com/vi/alJPRd6i3oQ/hqdefault.jpg?sqp=-oaymwEmCOADEOgC8quKqQMa8AEB-AH-BIAC4AOKAgwIABABGGUgVyhQMA8=&rs=AOn4CLCUSvuwYWwVoiS5uU4gWPYZGnWQGQ'}
+  ]}
+};
+
+/* ---------------------- GLOBAL UI HELPERS ---------------------- */
+function showCases(){ 
+  document.getElementById('mainMenu').style.display='none'; 
+  document.getElementById('casesScreen').style.display='block'; 
+  document.getElementById('shopScreen').style.display='none';
+}
+function showBattle(){ 
+  document.getElementById('mainMenu').style.display='none'; 
+  document.getElementById('battleScreen').style.display='block'; 
+  document.getElementById('shopScreen').style.display='none';
+  battleSelectedCases=[]; 
+  battleBots=1; 
+  document.getElementById('battleSelected').innerText='Brak skrzynek'; 
+  document.getElementById('battleArea').innerHTML=''; 
+  document.getElementById('battleResult').innerHTML=''; 
+}
+function showShop(){ 
+  document.getElementById('mainMenu').style.display='none'; 
+  document.getElementById('shopScreen').style.display='block'; 
+  document.getElementById('casesScreen').style.display='none';
+  document.getElementById('battleScreen').style.display='none';
+  renderShop();
+}
+function backToMenu(){ 
+  document.getElementById('casesScreen').style.display='none'; 
+  document.getElementById('battleScreen').style.display='none'; 
+  document.getElementById('shopScreen').style.display='none';
+  document.getElementById('mainMenu').style.display='block'; 
+}
+
+/* ---------------------- OTWIERANIE POJEDYNCZE ---------------------- */
+let currentCaseId=null, canRoll=true;
+function openCase(id){ currentCaseId=id; document.getElementById('caseBox').src = cases[id].img; document.getElementById('rollContainer').style.display='none'; document.getElementById('pointer').style.display='none'; document.getElementById('result').innerHTML=''; }
+function startRoll(){
+  if(!canRoll || !currentCaseId) return;
+  const c = cases[currentCaseId];
+  if(c.cost>0 && balance<c.cost){ alert('Za mało pieniędzy!'); return;}
+  if(c.cost>0){ balance -= c.cost; updateBalance(); }
+  canRoll=false; setTimeout(()=>canRoll=true,1500);
+  const container=document.getElementById('rollContainer'), roll=document.getElementById('roll'), pointer=document.getElementById('pointer'), result=document.getElementById('result');
+  result.innerHTML=''; roll.innerHTML=''; container.style.display='block'; pointer.style.display='block';
+  const finalSkin = weightedRandom(c.skins);
+  const price = Math.round(finalSkin.basePrice / (finalSkin.chance/3));
+  const items=[]; for(let i=0;i<28;i++) items.push(randomSkin(c.skins)); items.push(finalSkin); for(let i=0;i<12;i++) items.push(randomSkin(c.skins));
+  items.forEach(s => roll.innerHTML += `<div class="item"><img src="${s.img}"></div>`);
+  const itemW=220, finalPos = -(itemW*28) + (container.clientWidth/2)-(itemW/2);
+  roll.style.transition='none'; roll.style.left='0px';
+  requestAnimationFrame(()=>{ roll.style.transition='left 5.2s cubic-bezier(0.22,0.61,0.36,1)'; roll.style.left = finalPos + 'px'; setTimeout(()=>{ 
+    inventory.push({...finalSkin, price}); 
+    localStorage.setItem('pentoInventory', JSON.stringify(inventory)); 
+    renderInventory(); 
+    
+    // Dodaj XP za otwarcie skrzynki
+    addXP(xpRewards.caseOpen(c.cost));
+    
+    result.innerHTML = `<h3 style="color:#ff3399">WYGRAŁEŚ!</h3><p>${finalSkin.name}</p><p style="color:#0f0">${price.toLocaleString()} zł</p><img src="${finalSkin.img}" style="width:260px;border:4px solid #ff3399;border-radius:12px;margin-top:10px;">`; 
+  },5400); });
+}
+
+/* ---------------------- BATTLE (CASE BATTLE) ---------------------- */
+let battleBots = 1;
+let battleSelectedCases = [];
+
+function battleSetBots(n){ battleBots=n; renderBattleUI(); }
+function battleAddCase(id){ battleSelectedCases.push(id); renderBattleUI(); }
+function renderBattleUI(){
+  document.getElementById('battleSelected').innerText = battleSelectedCases.length===0 ? 'Brak skrzynek' : battleSelectedCases.map(i=>cases[i].name).join(', ');
+}
+
+/* startBattle: generate results, animate ALL players simultaneously and after each animation update totals.
+   Winner receives ALL items from the battle (all players' round items). */
+function startBattle(){
+  if(battleSelectedCases.length===0) return alert('Wybierz przynajmniej jedną skrzynkę do bitwy');
+
+  // NOWOŚĆ: pobieramy koszt wszystkich skrzynek od gracza
+  let totalCost = battleSelectedCases.reduce((sum, id) => sum + (cases[id].cost || 0), 0);
+  if(balance < totalCost) return alert(`Za mało pieniędzy! Potrzebujesz ${totalCost.toLocaleString()} zł`);
+  balance -= totalCost;
+  updateBalance();
+
+  const playersCount = 1 + battleBots;
+  const players = Array.from({length:playersCount}).map((_,i)=> ({id:i, name: i===0? 'Ty' : 'Bot '+i, rounds: [], total:0, itemsCount:0}) );
+
+  // generate results for every case and every player
+  for(const caseId of battleSelectedCases){
+    const c = cases[caseId];
+    for(let p=0;p<playersCount;p++){
+      const s = weightedRandom(c.skins);
+      const price = Math.round(s.basePrice / (s.chance/3));
+      players[p].rounds.push({caseId, name:s.name, img:s.img, price, chance:s.chance});
+    }
+  }
+
+  // render players area
+  const area = document.getElementById('battleArea');
+  area.innerHTML = '';
+  players.forEach(p => {
+    const slot = document.createElement('div');
+    slot.className = 'player-slot' + (p.id===0? ' you':'');
+    slot.id = `player_slot_${p.id}`;
+    slot.innerHTML = `<div class="name">${p.name}</div>
+                      <div class="box" id="box_${p.id}"><div style="color:#666">?</div></div>
+                      <div class="info">Suma: <span class="val" id="val_${p.id}">0</span> zł</div>
+                      <div class="info">Przedmioty: <span class="count" id="count_${p.id}">0</span></div>`;
+    area.appendChild(slot);
+  });
+
+  document.getElementById('battleResult').innerHTML = '';
+
+  // play rounds
+  const rounds = players[0].rounds.length;
+  let roundIndex = 0;
+
+  function animatePlayerSmallRoll(player, roundItem){
+    return new Promise(resolve => {
+      const box = document.getElementById(`box_${player.id}`);
+      const smallRoll = document.createElement('div');
+      smallRoll.className = 'small-roll';
+      smallRoll.style.left = '0px';
+
+      const c = cases[ roundItem.caseId ];
+      const items = [];
+      for(let i=0;i<28;i++) items.push(randomSkin(c.skins));
+      items.push({name: roundItem.name, img: roundItem.img});
+      for(let i=0;i<12;i++) items.push(randomSkin(c.skins));
+
+      items.forEach(it => {
+        const itEl = document.createElement('div');
+        itEl.className = 'small-item';
+        itEl.innerHTML = `<img src="${it.img}" style="width:140px;height:140px;object-fit:contain">`;
+        smallRoll.appendChild(itEl);
+      });
+
+      box.innerHTML = '';
+      box.appendChild(smallRoll);
+
+      const itemW = 160;
+      const finalPos = -(itemW * 28) + (box.clientWidth/2) - (itemW/2);
+
+      requestAnimationFrame(()=> {
+        smallRoll.style.transition = 'left 5.2s cubic-bezier(0.22,0.61,0.36,1)';
+        smallRoll.style.left = finalPos + 'px';
+      });
+
+      setTimeout(()=> {
+        box.innerHTML = `<img src="${roundItem.img}" style="width:140px;height:140px;object-fit:contain">`;
+        resolve(roundItem);
+      }, 5400);
+    });
+  }
+
+  async function playRoundsAsync(){
+    while(roundIndex < rounds){
+      const promises = players.map(p => {
+        const roundItem = p.rounds[roundIndex];
+        return animatePlayerSmallRoll(p, roundItem).then(revealedItem => {
+          p.total += revealedItem.price;
+          p.itemsCount += 1;
+          document.getElementById(`val_${p.id}`).textContent = p.total.toLocaleString();
+          document.getElementById(`count_${p.id}`).textContent = p.itemsCount;
+          let leader = players[0];
+          players.forEach(pl => { if(pl.total > leader.total) leader = pl; });
+          players.forEach(pl => {
+            const slot = document.getElementById(`player_slot_${pl.id}`);
+            if(pl.id === leader.id) slot.classList.add('leading'); else slot.classList.remove('leading');
+          });
+        });
+      });
+      await Promise.all(promises);
+      await new Promise(r => setTimeout(r, 300));
+      roundIndex++;
+    }
+
+    const winner = players.reduce((a,b)=> a.total>=b.total? a: b);
+    const winnerIndex = players.indexOf(winner);
+    const pooledItems = [];
+    players.forEach(p => p.rounds.forEach(r => pooledItems.push(r)));
+    if(winner.id === 0){
+      pooledItems.forEach(it => { inventory.push({name:it.name, img:it.img, price:it.price}); });
+      localStorage.setItem('pentoInventory', JSON.stringify(inventory));
+      renderInventory();
+      
+      // Dodaj XP za wygraną bitwę
+      addXP(xpRewards.battleWin);
+    } else {
+      // Dodaj XP za udział w bitwie (przegrana)
+      addXP(xpRewards.battleParticipate);
+    }
+
+    document.getElementById('battleResult').innerHTML = `<h3 style="color:gold">ZWYCIĘZCA: ${winner.name} — ${winner.total.toLocaleString()} zł</h3>
+        <p>${winner.id===0 ? 'Wygrałeś i zgarnąłeś wszystkie przedmioty z bitwy.' : 'Bot wygrał — przedmioty trafiły do bota.'}</p>`;
+    const winSlot = document.getElementById(`player_slot_${winnerIndex}`);
+    if(winSlot) winSlot.classList.add('winner');
+  }
+
+  playRoundsAsync();
+}
+
+/* ---------------------- UTILS ---------------------- */
+function weightedRandom(arr){
+  const total = arr.reduce((a,b)=>a+b.chance,0);
+  let r = Math.random()*total, cur=0;
+  for(const s of arr){ cur+=s.chance; if(r<=cur) return s; }
+  return arr[arr.length-1];
+}
+function randomSkin(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* ---------------------- INIT ---------------------- */
+updateBalance();
+renderInventory();
+battleSetBots(1);
+renderBattleUI();
+updateAvatar();
+updateLevelDisplay();
+</script>
+</body>
+</html>
